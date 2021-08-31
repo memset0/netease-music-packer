@@ -38,7 +38,7 @@ def crawl_playlist(config, id, dist):
     playlist_name = json['playlist']['name']
     for it in json['playlist']['tracks']:
         name = it['name']
-        artist = it['ar'][0]['name']
+        artist = ','.join(map(lambda r: str(r['name']), it['ar']))
         if not name or not artist:
             continue
         file = (artist + ' - ' + name).replace('.', '')
