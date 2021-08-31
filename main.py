@@ -1,9 +1,11 @@
 import os
+import re
 import sys
 import yaml
 import shutil
 import hashlib
 import requests
+import ncmdump
 from os import path
 
 
@@ -16,7 +18,11 @@ def md5(text, encoding='utf-8'):
 def crawl_playlist(config, id, dist):
     api_root = config['netease_music_api']['root']
     session = requests.session()
-    musiclib = os.listdir(config['localdir'])
+    musiclib = {}
+    for localdir in config['localdir']:
+        for file in os.listdir(localdir):
+            musiclib[file] = path.join(localdir, file)
+    distlib = os.listdir(dist)
 
     # login
     params = {
@@ -25,33 +31,36 @@ def crawl_playlist(config, id, dist):
     }
     res = session.get(api_root + '/login/cellphone', params=params)
 
-    # playlist
+    # music
     res = session.get(api_root + '/playlist/detail', params={"id": str(id)})
+    json = res.json()
     playlist = []
-    for it in res.json()['playlist']['tracks']:
-        playlist.append({
-            'name': it['name'],
-            'id': it['id'],
-            'artist': it['ar'][0]['name']
-        })
-
-    # copy local file
-    for music in playlist:
-        if music['name'] and music['artist']:
-            filename = music['artist'] + ' - ' + music['name']
-            if (filename + '.mp3') in musiclib:
-                shutil.copy(path.join(config['localdir'], filename + '.mp3'),
-                            dist)
-            elif (filename + '.flac') in musiclib:
-                shutil.copy(path.join(config['localdir'], filename + '.flac'),
-                            dist)
-            else:
-                print('music not found:', filename)
-
-    # print('config:', config)
-    # print('playlist:', playlist)
-    # print('musiclib:', musiclib)
+    for it in json['playlist']['tracks']:
+        name = it['name']
+        id = it['id']
+        artist = it['ar'][0]['name']
+        if not name or not artist:
+            continue
+        file = (artist + ' - ' + name).replace('.', '')
+        if (file + '.mp3') in distlib:
+            playlist.append(file + '.mp3')
+        elif (file + '.flac') in distlib:
+            playlist.append(file + '.flac')
+        elif (file + '.mp3') in musiclib:
+            shutil.copy(musiclib[file + '.mp3'], dist)
+            playlist.append(file + '.mp3')
+        elif (file + '.flac') in musiclib:
+            shutil.copy(musiclib[file + '.flac'], dist)
+            playlist.append(file + '.flac')
+        elif (file + '.ncm') in musiclib:
+            print('ncm dump:', file)
+            outpath = ncmdump.dump(
+                musiclib[file + '.ncm'],
+                lambda _, meta: path.join(dist, file + '.' + meta['format']))
+            playlist.append(outpath)
+        else:
+            print('music not found:', file)
 
 
 config = yaml.load(open(path.join(sys.path[0], 'config.yml')), yaml.BaseLoader)
-# crawl_playlist(config, 6855490486, 'D:\\Temp\\1')
+# crawl_playlist(config, 6855490486, 'A:\\CloudMusic')

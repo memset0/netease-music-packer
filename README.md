@@ -7,7 +7,7 @@
 复制 `config.sample.yml` 为 `config.yml`，按照填写配置文件。
 
 ```shell
-pip install requests
+pip install requests pycryptodome mutagen ncmdump
 python main.py
 ```
 
