@@ -31,17 +31,22 @@ def crawl_playlist(config, id, dist):
     }
     res = session.get(api_root + '/login/cellphone', params=params)
 
-    # music
+    # playlist
     res = session.get(api_root + '/playlist/detail', params={"id": str(id)})
     json = res.json()
     playlist = []
     playlist_name = json['playlist']['name']
+    print('[PLAYLIST]', playlist_name)
+
+    # music
     for it in json['playlist']['tracks']:
         name = it['name']
+        if len(it['ar']) > 3:
+            it['ar'] = it['ar'][:3]
         artist = ','.join(map(lambda r: str(r['name']), it['ar']))
         if not name or not artist:
             continue
-        file = (artist + ' - ' + name).replace('.', '')
+        file = artist + ' - ' + name
         if (file + '.mp3') in distlib:
             playlist.append(file + '.mp3')
         elif (file + '.flac') in distlib:
