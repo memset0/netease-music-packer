@@ -35,6 +35,7 @@ def crawl_playlist(config, id, dist):
     res = session.get(api_root + '/playlist/detail', params={"id": str(id)})
     json = res.json()
     playlist = []
+    playlist_name = json['playlist']['name']
     for it in json['playlist']['tracks']:
         name = it['name']
         id = it['id']
@@ -60,6 +61,15 @@ def crawl_playlist(config, id, dist):
             playlist.append(outpath)
         else:
             print('music not found:', file)
+
+    # m3u playlist
+    file = open(path.join(
+        dist,
+        re.sub(r'[\/\\\:\*\?"\<\>\|]', '', playlist_name) + '.m3u'),
+                'w+',
+                encoding='utf-8')
+    file.write('\n'.join(map(lambda n: path.join(dist, n), playlist)))
+    file.close()
 
 
 config = yaml.load(open(path.join(sys.path[0], 'config.yml')), yaml.BaseLoader)
