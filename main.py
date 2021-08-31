@@ -19,7 +19,7 @@ def crawl_playlist(config, id, dist):
     api_root = config['netease_music_api']['root']
     session = requests.session()
     musiclib = {}
-    for localdir in config['localdir']:
+    for localdir in config['local_dir']:
         for file in os.listdir(localdir):
             musiclib[file] = path.join(localdir, file)
     distlib = os.listdir(dist)
@@ -38,7 +38,6 @@ def crawl_playlist(config, id, dist):
     playlist_name = json['playlist']['name']
     for it in json['playlist']['tracks']:
         name = it['name']
-        id = it['id']
         artist = it['ar'][0]['name']
         if not name or not artist:
             continue
@@ -72,5 +71,8 @@ def crawl_playlist(config, id, dist):
     file.close()
 
 
-config = yaml.load(open(path.join(sys.path[0], 'config.yml')), yaml.BaseLoader)
-# crawl_playlist(config, 6855490486, 'A:\\CloudMusic')
+if __name__ == '__main__':
+    config = yaml.load(open(path.join(sys.path[0], 'config.yml')),
+                       yaml.BaseLoader)
+    for playlist in config['playlist']:
+        crawl_playlist(config, playlist, config['dist_dir'])
