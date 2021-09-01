@@ -40,6 +40,7 @@ def crawl_playlist(config, id, dist):
 
     # music
     for it in json['playlist']['tracks']:
+        id = it['id']
         name = it['name']
         if len(it['ar']) > 3:
             it['ar'] = it['ar'][:3]
@@ -47,6 +48,10 @@ def crawl_playlist(config, id, dist):
         if not name or not artist:
             continue
         file = artist + ' - ' + name
+        print(f'<{id}> {artist} - {name}')
+
+        # download music
+        exist_music = True
         if (file + '.mp3') in distlib:
             playlist.append(file + '.mp3')
         elif (file + '.flac') in distlib:
@@ -64,7 +69,23 @@ def crawl_playlist(config, id, dist):
                 lambda _, meta: path.join(dist, file + '.' + meta['format']))
             playlist.append(outpath)
         else:
+            exist_music = False
             print('music not found:', file)
+
+        # download lyric
+        if not exist_music:
+            pass
+        elif (file + '.lrc') in distlib:
+            pass
+        else:
+            res = session.get(api_root + '/lyric', params={"id": id})
+            json = res.json()
+            if 'lrc' in json and json['lrc']:
+                print('downloaded lyric', file)
+                filedir = path.join(dist, file + '.lrc')
+                file = open(filedir, 'w+', encoding='utf-8')
+                file.write(json['lrc']['lyric'])
+                file.close()
 
     # m3u playlist
     file = open(path.join(
