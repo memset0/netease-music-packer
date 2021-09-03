@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import yaml
+import json
 import shutil
 import hashlib
 import requests
@@ -13,6 +14,11 @@ def md5(text, encoding='utf-8'):
     md5_hash = hashlib.md5()
     md5_hash.update(text.encode(encoding))
     return md5_hash.hexdigest()
+
+
+def filename_filter(name):
+    name = re.sub(r'[\/\\\:\*\?"\<\>\|]', '', name)
+    return name
 
 
 def crawl_playlist(config, id, dist):
@@ -33,13 +39,13 @@ def crawl_playlist(config, id, dist):
 
     # playlist
     res = session.get(api_root + '/playlist/detail', params={"id": str(id)})
-    json = res.json()
+    data = json.loads(res.text)
     playlist = []
-    playlist_name = json['playlist']['name']
+    playlist_name = data['playlist']['name']
     print('[PLAYLIST]', playlist_name)
 
     # music
-    for it in json['playlist']['tracks']:
+    for it in data['playlist']['tracks']:
         id = it['id']
         name = it['name']
         if len(it['ar']) > 3:
@@ -79,20 +85,19 @@ def crawl_playlist(config, id, dist):
             pass
         else:
             res = session.get(api_root + '/lyric', params={"id": id})
-            json = res.json()
-            if 'lrc' in json and json['lrc']:
-                print('downloaded lyric', file)
-                filedir = path.join(dist, file + '.lrc')
-                file = open(filedir, 'w+', encoding='utf-8')
-                file.write(json['lrc']['lyric'])
-                file.close()
+            data = res.json()
+            filedir = path.join(dist, file + '.lrc')
+            file = open(filedir, 'w+', encoding='utf-8')
+            if 'lrc' in data and data['lrc']:
+                print('downloaded lyric', name)
+                file.write(data['lrc']['lyric'])
+            else:
+                file.write('No Lyrics found.')
+            file.close()
 
     # m3u playlist
-    file = open(path.join(
-        dist,
-        re.sub(r'[\/\\\:\*\?"\<\>\|]', '', playlist_name) + '.m3u'),
-                'w+',
-                encoding='utf-8')
+    filedir = path.join(dist, filename_filter(playlist_name) + '.m3u')
+    file = open(filedir, 'w+', encoding='utf-8')
     file.write('\n'.join(map(lambda n: path.join(dist, n), playlist)))
     file.close()
 
